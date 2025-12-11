@@ -1,0 +1,65 @@
+use std::{collections::HashMap, io::stdin};
+
+#[derive(Debug, Clone)]
+struct Device {
+    name: String,
+    connections: Vec<String>,
+}
+
+fn to_device(line: &str) -> Device {
+    let tokens = line
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect::<Vec<String>>();
+    let name_token = tokens.first().unwrap();
+    Device {
+        name: name_token[..(name_token.len() - 1)].to_string(),
+        connections: tokens.into_iter().skip(1).collect(),
+    }
+}
+
+fn build_device_map(devices: &[Device]) -> HashMap<String, Device> {
+    let mut map: HashMap<String, Device> = HashMap::new();
+    for device in devices.iter() {
+        map.insert(device.name.clone(), device.clone());
+    }
+    map
+}
+
+fn count_paths_from(
+    device: &Device,
+    seen_fft: bool,
+    seen_dac: bool,
+    device_map: &HashMap<String, Device>,
+) -> usize {
+    device.connections.iter().fold(0_usize, |acc, name| {
+        if name == "out" {
+            if seen_dac && seen_fft {
+                println!("*");
+                acc + 1
+            } else {
+                acc
+            }
+        } else {
+            acc + count_paths_from(
+                device_map.get(name).unwrap(),
+                seen_fft || device.name == "fft",
+                seen_dac || device.name == "dac",
+                device_map,
+            )
+        }
+    })
+}
+
+fn main() {
+    let devices = stdin()
+        .lines()
+        .map(|l| l.unwrap())
+        .map(|l| to_device(&l))
+        .collect::<Vec<Device>>();
+    let device_map = build_device_map(&devices);
+    let svr = device_map.get("svr").unwrap();
+    // let me = device_map.get("you").unwrap();
+    let count = count_paths_from(svr, false, false, &device_map);
+    println!("{}", count);
+}
