@@ -38,17 +38,22 @@ impl Machine {
 
         let mut model = problem.minimise(objective).using(microlp);
 
-        for var_idx in 0..num_vars {
+        for i in 0..num_vars {
             let lhs: Expression = coeffs
                 .iter()
                 .zip(sources.iter())
-                .map(|(coeff, source)| source[var_idx] * *coeff)
+                .map(|(coeff, source)| source[i] * *coeff)
                 .sum();
-            model = model.with(constraint!(lhs == self.joltages[var_idx]));
+            model = model.with(constraint!(lhs == self.joltages[i]));
         }
 
         match model.solve() {
-            Ok(solution) => Some(coeffs.iter().map(|c| solution.value(*c) as u64).collect()),
+            Ok(solution) => Some(
+                coeffs
+                    .iter()
+                    .map(|c| solution.value(*c).round() as u64)
+                    .collect(),
+            ),
             Err(_) => None,
         }
     }
@@ -59,10 +64,10 @@ impl Machine {
             .iter()
             .map(|b| b.to_source(self.joltages.len()))
             .collect::<Vec<Vec<i32>>>();
-        println!("sources = {:?}", sources);
-        println!("targets = {:?}", self.joltages);
+        // println!("sources = {:?}", sources);
+        // println!("targets = {:?}", self.joltages);
         if let Some(result) = self.solve(&sources) {
-            println!("solution = {:?}", result);
+            // println!("solution = {:?}", result);
             return result.iter().sum();
         }
         panic!();
